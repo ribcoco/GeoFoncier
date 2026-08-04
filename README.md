@@ -11,7 +11,7 @@ Minimal backend for cadastral parcel management with FastAPI, PostgreSQL, PostGI
 docker compose up --build -d
 ```
 
-3. The API exposes `/health`, `/health/db`, `POST /api/parcels`, and `GET /api/parcels/{parcel_id}`.
+3. The API exposes `/health`, `/health/db`, `POST /api/parcels`, `GET /api/parcels/{parcel_id}`, and `PATCH /api/parcels/{parcel_id}`.
 
 ## Database and Import
 

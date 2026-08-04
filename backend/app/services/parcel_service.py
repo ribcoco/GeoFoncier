@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import ParcelConflictError, ParcelNotFoundError
 from app.repositories.parcel_repository import ParcelRepository
-from app.schemas.parcel import ParcelCreate, ParcelResponse
+from app.schemas.parcel import ParcelCreate, ParcelResponse, ParcelUpdate
 
 
 class ParcelService:
@@ -64,6 +64,65 @@ class ParcelService:
         )
         if response_payload is None:
             raise ParcelNotFoundError("La parcelle demandee est introuvable.")
+
+        return ParcelResponse.model_validate(response_payload)
+
+    def update_parcel(
+        self,
+        session: Session,
+        parcel_id: int,
+        payload: ParcelUpdate,
+    ) -> ParcelResponse:
+        parcel = self.repository.get_by_id(session, parcel_id)
+        if parcel is None:
+            raise ParcelNotFoundError("La parcelle demandee est introuvable.")
+
+        patch_data = payload.model_dump(
+            exclude_unset=True,
+            exclude_none=True,
+        )
+
+        target_code_insee = patch_data.get("code_insee", parcel.code_insee)
+        target_prefixe = patch_data.get("prefixe", parcel.prefixe)
+        target_section = patch_data.get("section", parcel.section)
+        target_numero = patch_data.get("numero", parcel.numero)
+
+        existing = self.repository.get_by_cadastral_reference(
+            session,
+            code_insee=target_code_insee,
+            prefixe=target_prefixe,
+            section=target_section,
+            numero=target_numero,
+        )
+        if existing is not None and existing.id != parcel.id:
+            raise ParcelConflictError(
+                "Une parcelle existe deja pour cette reference cadastrale."
+            )
+
+        geometry_geojson = patch_data.get("geometry")
+        surface_m2: Decimal | None = None
+        if geometry_geojson is not None:
+            surface_m2 = self._compute_surface_m2(session, geometry_geojson)
+
+        updated = self.repository.update(
+            session,
+            parcel=parcel,
+            code_insee=patch_data.get("code_insee"),
+            prefixe=patch_data.get("prefixe"),
+            section=patch_data.get("section"),
+            numero=patch_data.get("numero"),
+            geometry_geojson=geometry_geojson,
+            surface_m2=surface_m2,
+        )
+
+        response_payload = self.repository.get_geojson_by_id(
+            session,
+            updated.id,
+        )
+        if response_payload is None:
+            raise ParcelNotFoundError(
+                "La parcelle mise a jour est introuvable en base."
+            )
 
         return ParcelResponse.model_validate(response_payload)
 

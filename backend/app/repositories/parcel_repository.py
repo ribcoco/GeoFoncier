@@ -61,6 +61,43 @@ class ParcelRepository:
         )
         return session.execute(statement).scalar_one_or_none()
 
+    def update(
+        self,
+        session: Session,
+        *,
+        parcel: Parcel,
+        code_insee: str | None = None,
+        prefixe: str | None = None,
+        section: str | None = None,
+        numero: str | None = None,
+        geometry_geojson: dict[str, Any] | None = None,
+        surface_m2: Decimal | None = None,
+    ) -> Parcel:
+        if code_insee is not None:
+            parcel.code_insee = code_insee
+        if prefixe is not None:
+            parcel.prefixe = prefixe
+        if section is not None:
+            parcel.section = section
+        if numero is not None:
+            parcel.numero = numero
+
+        if geometry_geojson is not None:
+            geometry_text = json.dumps(geometry_geojson)
+            geometry = func.ST_SetSRID(
+                func.ST_GeomFromGeoJSON(geometry_text),
+                4326,
+            )
+            parcel.geometry = geometry
+            parcel.bbox = func.ST_Envelope(geometry)
+            if surface_m2 is not None:
+                parcel.surface_m2 = surface_m2
+
+        session.add(parcel)
+        session.flush()
+        session.refresh(parcel)
+        return parcel
+
     def get_geojson_by_id(
         self,
         session: Session,

@@ -2,7 +2,12 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_db
-from app.schemas.parcel import ErrorResponse, ParcelCreate, ParcelResponse
+from app.schemas.parcel import (
+    ErrorResponse,
+    ParcelCreate,
+    ParcelResponse,
+    ParcelUpdate,
+)
 from app.services.parcel_service import ParcelService
 
 router = APIRouter(prefix="/api/parcels", tags=["parcels"])
@@ -46,3 +51,29 @@ def get_parcel(
     db: Session = Depends(get_db),
 ) -> ParcelResponse:
     return service.get_parcel(db, parcel_id)
+
+
+@router.patch(
+    "/{parcel_id}",
+    response_model=ParcelResponse,
+    status_code=status.HTTP_200_OK,
+    responses={
+        404: {
+            "model": ErrorResponse,
+        },
+        409: {
+            "model": ErrorResponse,
+        },
+        422: {
+            "model": ErrorResponse,
+        },
+    },
+)
+def update_parcel(
+    parcel_id: int,
+    payload: ParcelUpdate,
+    db: Session = Depends(get_db),
+) -> ParcelResponse:
+    result = service.update_parcel(db, parcel_id, payload)
+    db.commit()
+    return result
