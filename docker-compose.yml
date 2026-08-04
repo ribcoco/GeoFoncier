@@ -8,34 +8,50 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-geofoncier}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - postgis_data:/var/lib/postgresql/data
-      - ./infra/db/init-scripts:/docker-entrypoint-initdb.d
+      - geofoncier_postgis:/var/lib/postgresql/data
+      - ./infra/db/init-scripts:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-geofoncier} -d ${POSTGRES_DB:-geofoncier}"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 10s
 
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: geofoncier_pgadmin
     restart: unless-stopped
     environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:?PGADMIN_EMAIL is required}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?PGADMIN_PASSWORD is required}
       PGADMIN_CONFIG_SERVER_MODE: "False"
       PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
     ports:
-      - "5050:80"
+      - "${PGADMIN_PORT:-5050}:80"
     volumes:
-      - pgadmin_data:/var/lib/pgadmin
+      - geofoncier_pgadmin:/var/lib/pgadmin
       - ./infra/pgadmin/servers.json:/pgadmin4/servers.json:ro
     depends_on:
       postgis:
         condition: service_healthy
 
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: geofoncier_api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      postgis:
+        condition: service_healthy
+
 volumes:
-  postgis_data:
-  pgadmin_data:
+  geofoncier_postgis:
+  geofoncier_pgadmin:
