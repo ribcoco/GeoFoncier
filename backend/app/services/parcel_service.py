@@ -63,7 +63,7 @@ class ParcelService:
             parcel_id,
         )
         if response_payload is None:
-            raise ParcelNotFoundError("La parcelle demandeee est introuvable.")
+            raise ParcelNotFoundError("La parcelle demandee est introuvable.")
 
         return ParcelResponse.model_validate(response_payload)
 

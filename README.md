@@ -11,7 +11,7 @@ Minimal backend for cadastral parcel management with FastAPI, PostgreSQL, PostGI
 docker compose up --build -d
 ```
 
-3. The API exposes `/health` and `/health/db`.
+3. The API exposes `/health`, `/health/db`, `POST /api/parcels`, and `GET /api/parcels/{parcel_id}`.
 
 ## Database and Import
 
@@ -43,3 +43,4 @@ docker compose run --rm api ruff check app tests alembic
 - Alembic migrations
 - CSV import
 - Parcel schema, repository, and service base
+- First API routes: create and read parcel
