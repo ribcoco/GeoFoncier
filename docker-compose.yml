@@ -44,6 +44,8 @@ services:
     container_name: geofoncier_api
     restart: unless-stopped
     environment:
+      APP_NAME: ${APP_NAME:-GeoFoncier API}
+      APP_VERSION: ${APP_VERSION:-0.1.0}
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     ports:
