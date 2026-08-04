@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "GeoFoncier (local)",
+      "Group": "Servers",
+      "Host": "postgis",
+      "Port": 5432,
+      "MaintenanceDB": "geofoncier",
+      "Username": "geofoncier",
+      "SSLMode": "prefer",
+      "PassFile": "/tmp/pgpassfile"
+    }
+  }
+}
