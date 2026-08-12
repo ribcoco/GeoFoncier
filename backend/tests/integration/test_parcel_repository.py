@@ -23,6 +23,24 @@ def valid_polygon() -> dict[str, object]:
     }
 
 
+def polygon_at(
+    lon: float,
+    lat: float,
+    delta: float = 0.01,
+) -> dict[str, object]:
+    return {
+        "type": "Polygon",
+        "coordinates": [
+            [
+                [lon, lat],
+                [lon + delta, lat],
+                [lon + delta, lat + delta],
+                [lon, lat],
+            ]
+        ],
+    }
+
+
 @pytest.fixture(autouse=True)
 def prepare_parcels_table() -> None:
     Base.metadata.create_all(bind=SessionLocal.kw["bind"])
@@ -84,3 +102,93 @@ def test_repository_get_by_cadastral_reference_returns_matching_parcel(
 
         assert parcel is not None
         assert parcel.numero == "679"
+
+
+def test_repository_search_geojson_by_intersection_returns_matches() -> None:
+    repository = ParcelRepository()
+
+    with SessionLocal.begin() as session:
+        repository.create(
+            session,
+            code_insee="31556",
+            prefixe="001",
+            section="AA",
+            numero="001",
+            geometry_geojson=polygon_at(1.40, 43.60),
+            surface_m2=Decimal("100.00"),
+        )
+        repository.create(
+            session,
+            code_insee="31557",
+            prefixe="001",
+            section="AA",
+            numero="002",
+            geometry_geojson=polygon_at(2.40, 44.60),
+            surface_m2=Decimal("100.00"),
+        )
+
+    with SessionLocal() as session:
+        results = repository.search_geojson_by_intersection(
+            session,
+            geometry_geojson=polygon_at(1.405, 43.605, 0.005),
+            limit=100,
+            offset=0,
+        )
+
+    assert len(results) == 1
+    assert results[0]["code_insee"] == "31556"
+
+
+def test_repository_get_neighbors_geojson_by_id_returns_touching() -> None:
+    repository = ParcelRepository()
+
+    with SessionLocal.begin() as session:
+        center = repository.create(
+            session,
+            code_insee="31558",
+            prefixe="001",
+            section="AA",
+            numero="003",
+            geometry_geojson={
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [1.00, 43.00],
+                        [1.01, 43.00],
+                        [1.01, 43.01],
+                        [1.00, 43.00],
+                    ]
+                ],
+            },
+            surface_m2=Decimal("100.00"),
+        )
+        repository.create(
+            session,
+            code_insee="31559",
+            prefixe="001",
+            section="AA",
+            numero="004",
+            geometry_geojson={
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [1.01, 43.00],
+                        [1.02, 43.00],
+                        [1.02, 43.01],
+                        [1.01, 43.00],
+                    ]
+                ],
+            },
+            surface_m2=Decimal("100.00"),
+        )
+
+    with SessionLocal() as session:
+        results = repository.get_neighbors_geojson_by_id(
+            session,
+            parcel_id=center.id,
+            limit=100,
+            offset=0,
+        )
+
+    assert len(results) == 1
+    assert results[0]["code_insee"] == "31559"
