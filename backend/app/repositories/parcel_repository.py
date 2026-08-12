@@ -98,6 +98,10 @@ class ParcelRepository:
         session.refresh(parcel)
         return parcel
 
+    def delete(self, session: Session, parcel: Parcel) -> None:
+        session.delete(parcel)
+        session.flush()
+
     def get_geojson_by_id(
         self,
         session: Session,

@@ -183,3 +183,34 @@ def test_patch_parcel_returns_409_on_duplicate_reference() -> None:
 
     assert response.status_code == 409
     assert response.json()["detail"]["code"] == "PARCEL_CONFLICT"
+
+
+def test_delete_parcel_returns_204_and_removes_resource() -> None:
+    client = TestClient(app)
+    create_response = client.post(
+        "/api/parcels",
+        json={
+            "code_insee": "99976",
+            "prefixe": "001",
+            "section": "AA",
+            "numero": "007",
+            "geometry": valid_polygon(),
+        },
+    )
+    created_id = create_response.json()["id"]
+
+    delete_response = client.delete(f"/api/parcels/{created_id}")
+    get_response = client.get(f"/api/parcels/{created_id}")
+
+    assert delete_response.status_code == 204
+    assert get_response.status_code == 404
+    assert get_response.json()["detail"]["code"] == "PARCEL_NOT_FOUND"
+
+
+def test_delete_parcel_returns_404_when_missing() -> None:
+    client = TestClient(app)
+
+    response = client.delete("/api/parcels/99999999")
+
+    assert response.status_code == 404
+    assert response.json()["detail"]["code"] == "PARCEL_NOT_FOUND"

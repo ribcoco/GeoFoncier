@@ -126,6 +126,13 @@ class ParcelService:
 
         return ParcelResponse.model_validate(response_payload)
 
+    def delete_parcel(self, session: Session, parcel_id: int) -> None:
+        parcel = self.repository.get_by_id(session, parcel_id)
+        if parcel is None:
+            raise ParcelNotFoundError("La parcelle demandee est introuvable.")
+
+        self.repository.delete(session, parcel)
+
     def _compute_surface_m2(
         self,
         session: Session,

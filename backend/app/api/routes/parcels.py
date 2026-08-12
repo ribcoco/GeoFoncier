@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_db
@@ -77,3 +77,21 @@ def update_parcel(
     result = service.update_parcel(db, parcel_id, payload)
     db.commit()
     return result
+
+
+@router.delete(
+    "/{parcel_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        404: {
+            "model": ErrorResponse,
+        },
+    },
+)
+def delete_parcel(
+    parcel_id: int,
+    db: Session = Depends(get_db),
+) -> Response:
+    service.delete_parcel(db, parcel_id)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
