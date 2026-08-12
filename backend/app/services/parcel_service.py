@@ -8,7 +8,12 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import ParcelConflictError, ParcelNotFoundError
 from app.repositories.parcel_repository import ParcelRepository
-from app.schemas.parcel import ParcelCreate, ParcelResponse, ParcelUpdate
+from app.schemas.parcel import (
+    ParcelCreate,
+    ParcelResponse,
+    ParcelSearchRequest,
+    ParcelUpdate,
+)
 
 
 class ParcelService:
@@ -132,6 +137,22 @@ class ParcelService:
             raise ParcelNotFoundError("La parcelle demandee est introuvable.")
 
         self.repository.delete(session, parcel)
+
+    def search_parcels(
+        self,
+        session: Session,
+        payload: ParcelSearchRequest,
+    ) -> list[ParcelResponse]:
+        results = self.repository.search_geojson_by_intersection(
+            session,
+            geometry_geojson=payload.geometry.model_dump(),
+            limit=payload.limit,
+            offset=payload.offset,
+        )
+        return [
+            ParcelResponse.model_validate(result)
+            for result in results
+        ]
 
     def _compute_surface_m2(
         self,

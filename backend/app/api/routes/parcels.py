@@ -6,6 +6,7 @@ from app.schemas.parcel import (
     ErrorResponse,
     ParcelCreate,
     ParcelResponse,
+    ParcelSearchRequest,
     ParcelUpdate,
 )
 from app.services.parcel_service import ParcelService
@@ -95,3 +96,20 @@ def delete_parcel(
     service.delete_parcel(db, parcel_id)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    "/search",
+    response_model=list[ParcelResponse],
+    status_code=status.HTTP_200_OK,
+    responses={
+        422: {
+            "model": ErrorResponse,
+        },
+    },
+)
+def search_parcels(
+    payload: ParcelSearchRequest,
+    db: Session = Depends(get_db),
+) -> list[ParcelResponse]:
+    return service.search_parcels(db, payload)

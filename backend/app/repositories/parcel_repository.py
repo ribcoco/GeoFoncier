@@ -10,6 +10,23 @@ from app.schemas.parcel import geojson_polygon_from_mapping
 
 
 class ParcelRepository:
+    def _build_geojson_response_payload(self, row: Any) -> dict[str, Any]:
+        geometry = geojson_polygon_from_mapping(json.loads(row[8]))
+        bbox = geojson_polygon_from_mapping(json.loads(row[9]))
+
+        return {
+            "id": row[0],
+            "code_insee": row[1],
+            "prefixe": row[2],
+            "section": row[3],
+            "numero": row[4],
+            "surface_m2": row[5],
+            "created_at": row[6],
+            "updated_at": row[7],
+            "geometry": geometry,
+            "bbox": bbox,
+        }
+
     def create(
         self,
         session: Session,
@@ -124,18 +141,43 @@ class ParcelRepository:
         if row is None:
             return None
 
-        geometry = geojson_polygon_from_mapping(json.loads(row[8]))
-        bbox = geojson_polygon_from_mapping(json.loads(row[9]))
+        return self._build_geojson_response_payload(row)
 
-        return {
-            "id": row[0],
-            "code_insee": row[1],
-            "prefixe": row[2],
-            "section": row[3],
-            "numero": row[4],
-            "surface_m2": row[5],
-            "created_at": row[6],
-            "updated_at": row[7],
-            "geometry": geometry,
-            "bbox": bbox,
-        }
+    def search_geojson_by_intersection(
+        self,
+        session: Session,
+        *,
+        geometry_geojson: dict[str, Any],
+        limit: int,
+        offset: int,
+    ) -> list[dict[str, Any]]:
+        geometry_text = json.dumps(geometry_geojson)
+        search_geometry = func.ST_SetSRID(
+            func.ST_GeomFromGeoJSON(geometry_text),
+            4326,
+        )
+
+        statement = (
+            select(
+                Parcel.id,
+                Parcel.code_insee,
+                Parcel.prefixe,
+                Parcel.section,
+                Parcel.numero,
+                Parcel.surface_m2,
+                Parcel.created_at,
+                Parcel.updated_at,
+                func.ST_AsGeoJSON(Parcel.geometry),
+                func.ST_AsGeoJSON(Parcel.bbox),
+            )
+            .where(func.ST_Intersects(Parcel.geometry, search_geometry))
+            .order_by(Parcel.id)
+            .limit(limit)
+            .offset(offset)
+        )
+
+        rows = session.execute(statement).all()
+        return [
+            self._build_geojson_response_payload(row)
+            for row in rows
+        ]

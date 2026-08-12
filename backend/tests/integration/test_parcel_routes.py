@@ -23,6 +23,24 @@ def valid_polygon() -> dict[str, object]:
     }
 
 
+def polygon_at(
+    lon: float,
+    lat: float,
+    delta: float = 0.01,
+) -> dict[str, object]:
+    return {
+        "type": "Polygon",
+        "coordinates": [
+            [
+                [lon, lat],
+                [lon + delta, lat],
+                [lon + delta, lat + delta],
+                [lon, lat],
+            ]
+        ],
+    }
+
+
 @pytest.fixture(autouse=True)
 def cleanup_test_parcels() -> None:
     Base.metadata.create_all(bind=SessionLocal.kw["bind"])
@@ -214,3 +232,67 @@ def test_delete_parcel_returns_404_when_missing() -> None:
 
     assert response.status_code == 404
     assert response.json()["detail"]["code"] == "PARCEL_NOT_FOUND"
+
+
+def test_search_parcels_returns_intersecting_results() -> None:
+    client = TestClient(app)
+    first = client.post(
+        "/api/parcels",
+        json={
+            "code_insee": "99977",
+            "prefixe": "001",
+            "section": "AA",
+            "numero": "008",
+            "geometry": polygon_at(1.40, 43.60),
+        },
+    )
+    client.post(
+        "/api/parcels",
+        json={
+            "code_insee": "99978",
+            "prefixe": "001",
+            "section": "AA",
+            "numero": "009",
+            "geometry": polygon_at(2.40, 44.60),
+        },
+    )
+
+    response = client.post(
+        "/api/parcels/search",
+        json={
+            "geometry": polygon_at(1.405, 43.605, 0.005),
+            "limit": 100,
+            "offset": 0,
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["id"] == first.json()["id"]
+
+
+def test_search_parcels_returns_empty_list_when_no_intersection() -> None:
+    client = TestClient(app)
+    client.post(
+        "/api/parcels",
+        json={
+            "code_insee": "99979",
+            "prefixe": "001",
+            "section": "AA",
+            "numero": "010",
+            "geometry": polygon_at(1.40, 43.60),
+        },
+    )
+
+    response = client.post(
+        "/api/parcels/search",
+        json={
+            "geometry": polygon_at(5.00, 48.00),
+            "limit": 100,
+            "offset": 0,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == []
