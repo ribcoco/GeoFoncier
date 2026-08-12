@@ -1,0 +1,275 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --paper: #f7f1e5;
+  --ink: #2f251f;
+  --ink-soft: #5b4d45;
+  --panel: #fff9ef;
+  --panel-border: #d5c6b4;
+  --accent: #e25b2d;
+  --accent-strong: #b83c14;
+  --danger: #8f1212;
+  --ring: #14110f;
+  --shadow: rgba(61, 41, 20, 0.25) 0 18px 45px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 10% 10%, #ffd9a6 0 20%, transparent 40%),
+    radial-gradient(circle at 85% 25%, #ffb577 0 18%, transparent 42%),
+    linear-gradient(160deg, #fefcf8 0%, #f7f1e5 48%, #f0e5d2 100%);
+}
+
+#root {
+  width: min(1420px, 100%);
+  margin: 0 auto;
+  padding: 1.2rem;
+}
+
+.app-shell {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1rem;
+  background: linear-gradient(130deg, #fff9ef, #ffe7c6);
+  border: 2px solid var(--ring);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 1.2rem;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1rem;
+  color: var(--accent-strong);
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  line-height: 1;
+  margin-top: 0.3rem;
+}
+
+.lead,
+.api-url {
+  margin-top: 0.6rem;
+  color: var(--ink-soft);
+}
+
+.api-url {
+  font-family: 'IBM Plex Mono', Consolas, monospace;
+  font-size: 0.86rem;
+}
+
+.health-cards {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.health-cards article {
+  border: 2px solid var(--ring);
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 0.8rem;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 1rem;
+}
+
+.pane {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+}
+
+.card {
+  background: var(--panel);
+  border: 2px solid var(--panel-border);
+  border-radius: 14px;
+  padding: 0.95rem;
+  box-shadow: rgba(70, 46, 22, 0.1) 0 8px 20px;
+  animation: reveal 0.28s ease both;
+}
+
+.status-card {
+  border-color: var(--ring);
+}
+
+h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.7rem;
+}
+
+label {
+  display: grid;
+  gap: 0.32rem;
+  font-size: 0.88rem;
+  margin-bottom: 0.65rem;
+}
+
+input,
+textarea,
+button {
+  font: inherit;
+}
+
+input,
+textarea {
+  width: 100%;
+  border: 1.8px solid #9d8a74;
+  border-radius: 8px;
+  background: #fffdfa;
+  color: #291f18;
+  padding: 0.55rem 0.65rem;
+  transition: border-color 0.16s ease;
+}
+
+input:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+button {
+  width: fit-content;
+  border: 2px solid var(--ring);
+  border-radius: 10px;
+  padding: 0.6rem 0.95rem;
+  background: linear-gradient(125deg, var(--accent), #ff8a4f);
+  color: #fffdf8;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.danger {
+  background: linear-gradient(130deg, #b52d2d, #d74949);
+}
+
+.button-row {
+  display: flex;
+  gap: 0.7rem;
+  margin-bottom: 0.8rem;
+}
+
+.grid {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.two-cols {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.three-cols {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.result-list {
+  margin: 0;
+  padding: 0 0 0 1.1rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.geometry-preview {
+  width: 100%;
+  border: 1.5px solid #4e3a29;
+  border-radius: 10px;
+  background: #fffdf8;
+}
+
+.preview-background {
+  fill: #fff5e8;
+}
+
+.preview-polygon {
+  fill: rgba(226, 91, 45, 0.26);
+  stroke: #ad3d16;
+  stroke-width: 2;
+  transform-origin: center;
+  animation: polygonIn 0.4s ease both;
+}
+
+.empty-preview {
+  border: 1.8px dashed #a89681;
+  border-radius: 10px;
+  padding: 1rem;
+  color: var(--ink-soft);
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes polygonIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 1080px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  #root {
+    padding: 0.7rem;
+  }
+
+  .two-cols,
+  .three-cols {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 import pytest
+from sqlalchemy import func, select
 from sqlalchemy import delete
 from decimal import Decimal
 
@@ -44,9 +45,17 @@ def polygon_at(
 @pytest.fixture(autouse=True)
 def cleanup_test_parcels() -> None:
     Base.metadata.create_all(bind=SessionLocal.kw["bind"])
+    with SessionLocal() as session:
+        baseline_max_id = session.execute(
+            select(func.max(Parcel.id))
+        ).scalar_one_or_none()
+
+    yield
+
+    min_new_id = (baseline_max_id or 0) + 1
     with SessionLocal.begin() as session:
         session.execute(
-            delete(Parcel).where(Parcel.code_insee.like("9997%"))
+            delete(Parcel).where(Parcel.id >= min_new_id)
         )
 
 
@@ -55,7 +64,7 @@ def test_post_parcel_returns_201() -> None:
     response = client.post(
         "/api/parcels",
         json={
-            "code_insee": "99970",
+            "code_insee": "TST70",
             "prefixe": "001",
             "section": "AA",
             "numero": "001",
@@ -65,7 +74,7 @@ def test_post_parcel_returns_201() -> None:
 
     assert response.status_code == 201
     body = response.json()
-    assert body["code_insee"] == "99970"
+    assert body["code_insee"] == "TST70"
     assert body["geometry"]["type"] == "Polygon"
     assert Decimal(body["surface_m2"]) > Decimal("0")
 
@@ -75,7 +84,7 @@ def test_get_parcel_returns_200() -> None:
     create_response = client.post(
         "/api/parcels",
         json={
-            "code_insee": "99971",
+            "code_insee": "TST71",
             "prefixe": "001",
             "section": "AA",
             "numero": "002",
@@ -101,7 +110,7 @@ def test_get_parcel_returns_404_when_missing() -> None:
 def test_post_parcel_returns_409_on_duplicate_reference() -> None:
     client = TestClient(app)
     payload = {
-        "code_insee": "99972",
+        "code_insee": "TST72",
         "prefixe": "001",
         "section": "AA",
         "numero": "003",
@@ -121,7 +130,7 @@ def test_patch_parcel_returns_200() -> None:
     create_response = client.post(
         "/api/parcels",
         json={
-            "code_insee": "99973",
+            "code_insee": "TST73",
             "prefixe": "001",
             "section": "AA",
             "numero": "004",
@@ -171,7 +180,7 @@ def test_patch_parcel_returns_409_on_duplicate_reference() -> None:
     first = client.post(
         "/api/parcels",
         json={
-            "code_insee": "99974",
+            "code_insee": "TST74",
             "prefixe": "001",
             "section": "AA",
             "numero": "005",
@@ -181,7 +190,7 @@ def test_patch_parcel_returns_409_on_duplicate_reference() -> None:
     second = client.post(
         "/api/parcels",
         json={
-            "code_insee": "99975",
+            "code_insee": "TST75",
             "prefixe": "001",
             "section": "AA",
             "numero": "006",
@@ -208,7 +217,7 @@ def test_delete_parcel_returns_204_and_removes_resource() -> None:
     create_response = client.post(
         "/api/parcels",
         json={
-            "code_insee": "99976",
+            "code_insee": "TST76",
             "prefixe": "001",
             "section": "AA",
             "numero": "007",
@@ -239,7 +248,7 @@ def test_search_parcels_returns_intersecting_results() -> None:
     first = client.post(
         "/api/parcels",
         json={
-            "code_insee": "99977",
+            "code_insee": "TST77",
             "prefixe": "001",
             "section": "AA",
             "numero": "008",
@@ -249,7 +258,7 @@ def test_search_parcels_returns_intersecting_results() -> None:
     client.post(
         "/api/parcels",
         json={
-            "code_insee": "99978",
+            "code_insee": "TST78",
             "prefixe": "001",
             "section": "AA",
             "numero": "009",
@@ -277,7 +286,7 @@ def test_search_parcels_returns_empty_list_when_no_intersection() -> None:
     client.post(
         "/api/parcels",
         json={
-            "code_insee": "99979",
+            "code_insee": "TST79",
             "prefixe": "001",
             "section": "AA",
             "numero": "010",
@@ -303,7 +312,7 @@ def test_get_parcel_neighbors_returns_touching_parcels() -> None:
     center = client.post(
         "/api/parcels",
         json={
-            "code_insee": "99980",
+            "code_insee": "TST80",
             "prefixe": "001",
             "section": "AA",
             "numero": "011",
@@ -323,7 +332,7 @@ def test_get_parcel_neighbors_returns_touching_parcels() -> None:
     east_neighbor = client.post(
         "/api/parcels",
         json={
-            "code_insee": "99981",
+            "code_insee": "TST81",
             "prefixe": "001",
             "section": "AA",
             "numero": "012",
@@ -343,7 +352,7 @@ def test_get_parcel_neighbors_returns_touching_parcels() -> None:
     client.post(
         "/api/parcels",
         json={
-            "code_insee": "99982",
+            "code_insee": "TST82",
             "prefixe": "001",
             "section": "AA",
             "numero": "013",
@@ -364,7 +373,7 @@ def test_get_parcel_neighbors_supports_pagination() -> None:
     center = client.post(
         "/api/parcels",
         json={
-            "code_insee": "99983",
+            "code_insee": "TST83",
             "prefixe": "001",
             "section": "AA",
             "numero": "014",
@@ -384,7 +393,7 @@ def test_get_parcel_neighbors_supports_pagination() -> None:
     west_neighbor = client.post(
         "/api/parcels",
         json={
-            "code_insee": "99984",
+            "code_insee": "TST84",
             "prefixe": "001",
             "section": "AA",
             "numero": "015",
@@ -404,7 +413,7 @@ def test_get_parcel_neighbors_supports_pagination() -> None:
     east_neighbor = client.post(
         "/api/parcels",
         json={
-            "code_insee": "99985",
+            "code_insee": "TST85",
             "prefixe": "001",
             "section": "AA",
             "numero": "016",

@@ -2,6 +2,8 @@
 
 Minimal backend for cadastral parcel management with FastAPI, PostgreSQL, PostGIS, and Alembic.
 
+The repository now includes a full frontend parcel workbench (React + TypeScript + Vite) connected to the API.
+
 ## Quick Start
 
 1. Copy `.env.example` to `.env` and adjust passwords if needed.
@@ -29,6 +31,12 @@ cp .env.example .env
 docker compose up --build -d
 ```
 
+This starts:
+- API on `http://localhost:8000`
+- Frontend on `http://localhost:5173`
+- PostgreSQL/PostGIS on `localhost:5432`
+- pgAdmin on `http://localhost:5050`
+
 3. Apply database migrations.
 
 ```powershell
@@ -49,6 +57,14 @@ curl http://localhost:8000/health/db
 ```
 
 Expected result: both endpoints return `200 OK`.
+
+6. Open the frontend workbench:
+
+```text
+http://localhost:5173
+```
+
+The homepage exposes all backend flows directly (create/read/update/delete/search/neighbors), plus API/DB health indicators.
 
 ## API Usage
 
@@ -198,6 +214,34 @@ Expected:
 - `404` if target parcel does not exist.
 - `422` if pagination parameters are invalid.
 
+## Frontend Usage
+
+### Local frontend development
+
+Run only the frontend dev server (API must already be running):
+
+```powershell
+npm --prefix frontend run dev
+```
+
+### Frontend checks
+
+```powershell
+npm --prefix frontend run lint
+npm --prefix frontend run build
+```
+
+### Jury quick demo sequence
+
+1. Open `http://localhost:5173`.
+2. Verify health cards (API and DB) are green/ok.
+3. Create one parcel in the "Creation" panel.
+4. Load it by id in "Lecture / Mise a jour / Suppression".
+5. Update `numero`, then reload to verify persistence.
+6. Run a spatial search in "Recherche spatiale" and inspect result count.
+7. Query neighbors in "Voisins".
+8. Delete the parcel and confirm `not found` behavior by reloading its id.
+
 ## Database and Import
 
 Apply migrations:
@@ -221,6 +265,8 @@ docker compose run --rm api pytest tests/unit/test_health.py tests/unit/test_par
 docker compose run --rm api pytest tests/integration/test_health_db.py tests/integration/test_parcel_schema.py tests/integration/test_parcel_repository.py tests/integration/test_parcel_service.py
 docker compose run --rm api pytest tests/integration/test_parcel_routes.py
 docker compose run --rm api ruff check app tests alembic
+npm --prefix frontend run lint
+npm --prefix frontend run build
 ```
 
 ## Current Scope
@@ -230,3 +276,4 @@ docker compose run --rm api ruff check app tests alembic
 - CSV import
 - Parcel schema, repository, and service base
 - Parcel API routes: create, read, update, delete, search, neighbors
+- Frontend parcel workbench wired to all API routes

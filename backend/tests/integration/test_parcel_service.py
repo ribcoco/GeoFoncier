@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 import pytest
+from sqlalchemy import func, select
 from sqlalchemy import delete
 
 from app.core.exceptions import ParcelConflictError, ParcelNotFoundError
@@ -46,15 +47,25 @@ def polygon_at(
 @pytest.fixture(autouse=True)
 def cleanup_test_parcels() -> None:
     Base.metadata.create_all(bind=SessionLocal.kw["bind"])
+    with SessionLocal() as session:
+        baseline_max_id = session.execute(
+            select(func.max(Parcel.id))
+        ).scalar_one_or_none()
+
+    yield
+
+    min_new_id = (baseline_max_id or 0) + 1
     with SessionLocal.begin() as session:
-        session.execute(delete(Parcel))
+        session.execute(
+            delete(Parcel).where(Parcel.id >= min_new_id)
+        )
 
 
 def test_service_creates_parcel_and_computes_surface() -> None:
     service = ParcelService()
     payload = ParcelCreate.model_validate(
         {
-            "code_insee": "99999",
+            "code_insee": "TSV99",
             "prefixe": "001",
             "section": "AA",
             "numero": "001",
@@ -65,7 +76,7 @@ def test_service_creates_parcel_and_computes_surface() -> None:
     with SessionLocal.begin() as session:
         result = service.create_parcel(session, payload)
 
-    assert result.code_insee == "99999"
+    assert result.code_insee == "TSV99"
     assert result.geometry.type == "Polygon"
     assert result.bbox.type == "Polygon"
     assert result.surface_m2 > Decimal("0")
@@ -75,7 +86,7 @@ def test_service_rejects_duplicate_cadastral_reference() -> None:
     service = ParcelService()
     payload = ParcelCreate.model_validate(
         {
-            "code_insee": "99998",
+            "code_insee": "TSV98",
             "prefixe": "001",
             "section": "AA",
             "numero": "002",
@@ -95,7 +106,7 @@ def test_service_get_parcel_returns_created_parcel() -> None:
     service = ParcelService()
     payload = ParcelCreate.model_validate(
         {
-            "code_insee": "99997",
+            "code_insee": "TSV97",
             "prefixe": "001",
             "section": "AA",
             "numero": "003",
@@ -121,7 +132,7 @@ def test_service_search_parcels_returns_intersections() -> None:
             session,
             ParcelCreate.model_validate(
                 {
-                    "code_insee": "99996",
+                    "code_insee": "TSV96",
                     "prefixe": "001",
                     "section": "AA",
                     "numero": "011",
@@ -133,7 +144,7 @@ def test_service_search_parcels_returns_intersections() -> None:
             session,
             ParcelCreate.model_validate(
                 {
-                    "code_insee": "99995",
+                    "code_insee": "TSV95",
                     "prefixe": "001",
                     "section": "AA",
                     "numero": "012",
@@ -155,7 +166,7 @@ def test_service_search_parcels_returns_intersections() -> None:
         )
 
     assert len(result) == 1
-    assert result[0].code_insee == "99996"
+    assert result[0].code_insee == "TSV96"
 
 
 def test_service_get_neighbors_returns_touching_parcels() -> None:
@@ -165,7 +176,7 @@ def test_service_get_neighbors_returns_touching_parcels() -> None:
             session,
             ParcelCreate.model_validate(
                 {
-                    "code_insee": "99994",
+                    "code_insee": "TSV94",
                     "prefixe": "001",
                     "section": "AA",
                     "numero": "013",
@@ -187,7 +198,7 @@ def test_service_get_neighbors_returns_touching_parcels() -> None:
             session,
             ParcelCreate.model_validate(
                 {
-                    "code_insee": "99993",
+                    "code_insee": "TSV93",
                     "prefixe": "001",
                     "section": "AA",
                     "numero": "014",
@@ -215,7 +226,7 @@ def test_service_get_neighbors_returns_touching_parcels() -> None:
         )
 
     assert len(neighbors) == 1
-    assert neighbors[0].code_insee == "99993"
+    assert neighbors[0].code_insee == "TSV93"
 
 
 def test_service_get_neighbors_raises_not_found() -> None:
