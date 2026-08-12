@@ -181,3 +181,43 @@ class ParcelRepository:
             self._build_geojson_response_payload(row)
             for row in rows
         ]
+
+    def get_neighbors_geojson_by_id(
+        self,
+        session: Session,
+        *,
+        parcel_id: int,
+        limit: int,
+        offset: int,
+    ) -> list[dict[str, Any]]:
+        target_subquery = (
+            select(Parcel.geometry)
+            .where(Parcel.id == parcel_id)
+            .scalar_subquery()
+        )
+
+        statement = (
+            select(
+                Parcel.id,
+                Parcel.code_insee,
+                Parcel.prefixe,
+                Parcel.section,
+                Parcel.numero,
+                Parcel.surface_m2,
+                Parcel.created_at,
+                Parcel.updated_at,
+                func.ST_AsGeoJSON(Parcel.geometry),
+                func.ST_AsGeoJSON(Parcel.bbox),
+            )
+            .where(Parcel.id != parcel_id)
+            .where(func.ST_Touches(Parcel.geometry, target_subquery))
+            .order_by(Parcel.id)
+            .limit(limit)
+            .offset(offset)
+        )
+
+        rows = session.execute(statement).all()
+        return [
+            self._build_geojson_response_payload(row)
+            for row in rows
+        ]

@@ -154,6 +154,29 @@ class ParcelService:
             for result in results
         ]
 
+    def get_parcel_neighbors(
+        self,
+        session: Session,
+        parcel_id: int,
+        *,
+        limit: int,
+        offset: int,
+    ) -> list[ParcelResponse]:
+        parcel = self.repository.get_by_id(session, parcel_id)
+        if parcel is None:
+            raise ParcelNotFoundError("La parcelle demandee est introuvable.")
+
+        results = self.repository.get_neighbors_geojson_by_id(
+            session,
+            parcel_id=parcel_id,
+            limit=limit,
+            offset=offset,
+        )
+        return [
+            ParcelResponse.model_validate(result)
+            for result in results
+        ]
+
     def _compute_surface_m2(
         self,
         session: Session,

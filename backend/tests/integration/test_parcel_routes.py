@@ -296,3 +296,151 @@ def test_search_parcels_returns_empty_list_when_no_intersection() -> None:
 
     assert response.status_code == 200
     assert response.json() == []
+
+
+def test_get_parcel_neighbors_returns_touching_parcels() -> None:
+    client = TestClient(app)
+    center = client.post(
+        "/api/parcels",
+        json={
+            "code_insee": "99980",
+            "prefixe": "001",
+            "section": "AA",
+            "numero": "011",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [1.00, 43.00],
+                        [1.01, 43.00],
+                        [1.01, 43.01],
+                        [1.00, 43.00],
+                    ]
+                ],
+            },
+        },
+    )
+    east_neighbor = client.post(
+        "/api/parcels",
+        json={
+            "code_insee": "99981",
+            "prefixe": "001",
+            "section": "AA",
+            "numero": "012",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [1.01, 43.00],
+                        [1.02, 43.00],
+                        [1.02, 43.01],
+                        [1.01, 43.00],
+                    ]
+                ],
+            },
+        },
+    )
+    client.post(
+        "/api/parcels",
+        json={
+            "code_insee": "99982",
+            "prefixe": "001",
+            "section": "AA",
+            "numero": "013",
+            "geometry": polygon_at(2.00, 45.00),
+        },
+    )
+
+    response = client.get(f"/api/parcels/{center.json()['id']}/neighbors")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["id"] == east_neighbor.json()["id"]
+
+
+def test_get_parcel_neighbors_supports_pagination() -> None:
+    client = TestClient(app)
+    center = client.post(
+        "/api/parcels",
+        json={
+            "code_insee": "99983",
+            "prefixe": "001",
+            "section": "AA",
+            "numero": "014",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [1.10, 43.10],
+                        [1.11, 43.10],
+                        [1.11, 43.11],
+                        [1.10, 43.10],
+                    ]
+                ],
+            },
+        },
+    )
+    west_neighbor = client.post(
+        "/api/parcels",
+        json={
+            "code_insee": "99984",
+            "prefixe": "001",
+            "section": "AA",
+            "numero": "015",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [1.09, 43.10],
+                        [1.10, 43.10],
+                        [1.10, 43.11],
+                        [1.09, 43.10],
+                    ]
+                ],
+            },
+        },
+    )
+    east_neighbor = client.post(
+        "/api/parcels",
+        json={
+            "code_insee": "99985",
+            "prefixe": "001",
+            "section": "AA",
+            "numero": "016",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [1.11, 43.10],
+                        [1.12, 43.10],
+                        [1.12, 43.11],
+                        [1.11, 43.10],
+                    ]
+                ],
+            },
+        },
+    )
+
+    response = client.get(
+        f"/api/parcels/{center.json()['id']}/neighbors?limit=1&offset=1"
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    returned_id = body[0]["id"]
+    neighbor_ids = [
+        west_neighbor.json()["id"],
+        east_neighbor.json()["id"],
+    ]
+    assert returned_id in neighbor_ids
+
+
+def test_get_parcel_neighbors_returns_404_when_missing() -> None:
+    client = TestClient(app)
+
+    response = client.get("/api/parcels/99999999/neighbors")
+
+    assert response.status_code == 404
+    assert response.json()["detail"]["code"] == "PARCEL_NOT_FOUND"

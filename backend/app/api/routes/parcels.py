@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_db
@@ -113,3 +113,30 @@ def search_parcels(
     db: Session = Depends(get_db),
 ) -> list[ParcelResponse]:
     return service.search_parcels(db, payload)
+
+
+@router.get(
+    "/{parcel_id}/neighbors",
+    response_model=list[ParcelResponse],
+    status_code=status.HTTP_200_OK,
+    responses={
+        404: {
+            "model": ErrorResponse,
+        },
+        422: {
+            "model": ErrorResponse,
+        },
+    },
+)
+def get_parcel_neighbors(
+    parcel_id: int,
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+) -> list[ParcelResponse]:
+    return service.get_parcel_neighbors(
+        db,
+        parcel_id,
+        limit=limit,
+        offset=offset,
+    )
