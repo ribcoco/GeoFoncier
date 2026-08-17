@@ -164,6 +164,34 @@ def test_patch_parcel_returns_200() -> None:
     assert Decimal(body["surface_m2"]) > Decimal("0")
 
 
+def test_post_parcel_returns_422_when_geometry_is_invalid() -> None:
+    client = TestClient(app)
+    response = client.post(
+        "/api/parcels",
+        json={
+            "code_insee": "TST74",
+            "prefixe": "001",
+            "section": "AA",
+            "numero": "018",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [0.0, 0.0],
+                        [2.0, 0.0],
+                        [0.0, 2.0],
+                        [2.0, 2.0],
+                        [0.0, 0.0],
+                    ]
+                ],
+            },
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == "PARCEL_INVALID"
+
+
 def test_patch_parcel_returns_404_when_missing() -> None:
     client = TestClient(app)
     response = client.patch(

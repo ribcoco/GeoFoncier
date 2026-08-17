@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 import pytest
-from sqlalchemy import delete
+from sqlalchemy import delete, func, select
 
 from app.database.base import Base
 from app.database.session import SessionLocal
@@ -44,8 +44,16 @@ def polygon_at(
 @pytest.fixture(autouse=True)
 def prepare_parcels_table() -> None:
     Base.metadata.create_all(bind=SessionLocal.kw["bind"])
+    with SessionLocal() as session:
+        baseline_max_id = session.execute(
+            select(func.max(Parcel.id))
+        ).scalar_one_or_none()
+
+    yield
+
+    min_new_id = (baseline_max_id or 0) + 1
     with SessionLocal.begin() as session:
-        session.execute(delete(Parcel))
+        session.execute(delete(Parcel).where(Parcel.id >= min_new_id))
 
 
 def test_repository_creates_and_reads_parcel_with_geojson() -> None:
