@@ -14,3 +14,8 @@ class ParcelConflictError(ParcelError):
 class ParcelNotFoundError(ParcelError):
     def __init__(self, message: str) -> None:
         super().__init__("PARCEL_NOT_FOUND", message, 404)
+
+
+class ParcelInvalidError(ParcelError):
+    def __init__(self, message: str) -> None:
+        super().__init__("PARCEL_INVALID", message, 422)

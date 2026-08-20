@@ -4,9 +4,14 @@ import json
 from decimal import Decimal
 
 from sqlalchemy import Numeric, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import ParcelConflictError, ParcelNotFoundError
+from app.core.exceptions import (
+    ParcelConflictError,
+    ParcelInvalidError,
+    ParcelNotFoundError,
+)
 from app.repositories.parcel_repository import ParcelRepository
 from app.schemas.parcel import (
     ParcelCreate,
@@ -19,6 +24,25 @@ from app.schemas.parcel import (
 class ParcelService:
     def __init__(self, repository: ParcelRepository | None = None) -> None:
         self.repository = repository or ParcelRepository()
+
+    def _raise_for_invalid_geometry(self, exc: IntegrityError | Exception) -> None:
+        message = str(exc).lower()
+        invalid_markers = (
+            "st_isvalid",
+            "self-intersect",
+            "self intersect",
+            "invalid geometry",
+            "geometry is invalid",
+            "null area",
+            "area is null",
+            "not valid",
+            "not valid for geography",
+        )
+        if any(marker in message for marker in invalid_markers):
+            raise ParcelInvalidError(
+                "La geometrie fournie est invalide ou non conforme aux contraintes geometriques."
+            ) from exc
+        raise exc
 
     def create_parcel(
         self,
@@ -41,15 +65,18 @@ class ParcelService:
             session,
             payload.geometry.model_dump(),
         )
-        parcel = self.repository.create(
-            session,
-            code_insee=payload.code_insee,
-            prefixe=payload.prefixe,
-            section=payload.section,
-            numero=payload.numero,
-            geometry_geojson=payload.geometry.model_dump(),
-            surface_m2=surface_m2,
-        )
+        try:
+            parcel = self.repository.create(
+                session,
+                code_insee=payload.code_insee,
+                prefixe=payload.prefixe,
+                section=payload.section,
+                numero=payload.numero,
+                geometry_geojson=payload.geometry.model_dump(),
+                surface_m2=surface_m2,
+            )
+        except IntegrityError as exc:
+            self._raise_for_invalid_geometry(exc)
 
         response_payload = self.repository.get_geojson_by_id(
             session,
@@ -109,16 +136,19 @@ class ParcelService:
         if geometry_geojson is not None:
             surface_m2 = self._compute_surface_m2(session, geometry_geojson)
 
-        updated = self.repository.update(
-            session,
-            parcel=parcel,
-            code_insee=patch_data.get("code_insee"),
-            prefixe=patch_data.get("prefixe"),
-            section=patch_data.get("section"),
-            numero=patch_data.get("numero"),
-            geometry_geojson=geometry_geojson,
-            surface_m2=surface_m2,
-        )
+        try:
+            updated = self.repository.update(
+                session,
+                parcel=parcel,
+                code_insee=patch_data.get("code_insee"),
+                prefixe=patch_data.get("prefixe"),
+                section=patch_data.get("section"),
+                numero=patch_data.get("numero"),
+                geometry_geojson=geometry_geojson,
+                surface_m2=surface_m2,
+            )
+        except IntegrityError as exc:
+            self._raise_for_invalid_geometry(exc)
 
         response_payload = self.repository.get_geojson_by_id(
             session,
@@ -199,4 +229,8 @@ class ParcelService:
             )
         )
         surface_m2 = session.execute(statement).scalar_one()
-        return Decimal(surface_m2)
+        if surface_m2 is None or Decimal(str(surface_m2)) <= Decimal("0"):
+            raise ParcelInvalidError(
+                "La geometrie fournie est invalide ou produit une surface nulle."
+            )
+        return Decimal(str(surface_m2))
