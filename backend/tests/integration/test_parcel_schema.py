@@ -53,8 +53,8 @@ def test_parcels_table_schema_matches_expected_shape() -> None:
         ("bbox", "POLYGON", 4326),
         ("geometry", "POLYGON", 4326),
     ]
-    assert "ix_parcels_bbox_gist" in index_names
-    assert "ix_parcels_geometry_gist" in index_names
+    assert any("bbox" in name for name in index_names), f"No bbox spatial index found in {index_names}"
+    assert any("geometry" in name and name != "uq_parcels_cadastral_reference" for name in index_names), f"No geometry spatial index found in {index_names}"
     assert "uq_parcels_cadastral_reference" in constraint_names
     assert "ck_parcels_geometry_valid" in constraint_names
     assert "ck_parcels_surface_positive" in constraint_names

@@ -62,7 +62,7 @@ def test_repository_creates_and_reads_parcel_with_geojson() -> None:
     with SessionLocal.begin() as session:
         created = repository.create(
             session,
-            code_insee="31555",
+            code_insee="TSTR1",
             prefixe="806",
             section="AB",
             numero="139",
@@ -74,12 +74,12 @@ def test_repository_creates_and_reads_parcel_with_geojson() -> None:
     with SessionLocal() as session:
         parcel = repository.get_by_id(session, created_id)
         assert parcel is not None
-        assert parcel.code_insee == "31555"
+        assert parcel.code_insee == "TSTR1"
         assert parcel.surface_m2 == Decimal("123.45")
 
         payload = repository.get_geojson_by_id(session, created_id)
         assert payload is not None
-        assert payload["code_insee"] == "31555"
+        assert payload["code_insee"] == "TSTR1"
         assert payload["geometry"].type == "Polygon"
         assert payload["bbox"].type == "Polygon"
 
@@ -91,7 +91,7 @@ def test_repository_get_by_cadastral_reference_returns_matching_parcel(
     with SessionLocal.begin() as session:
         repository.create(
             session,
-            code_insee="31555",
+            code_insee="TSTR2",
             prefixe="806",
             section="AD",
             numero="679",
@@ -102,7 +102,7 @@ def test_repository_get_by_cadastral_reference_returns_matching_parcel(
     with SessionLocal() as session:
         parcel = repository.get_by_cadastral_reference(
             session,
-            code_insee="31555",
+            code_insee="TSTR2",
             prefixe="806",
             section="AD",
             numero="679",
@@ -118,7 +118,7 @@ def test_repository_search_geojson_by_intersection_returns_matches() -> None:
     with SessionLocal.begin() as session:
         repository.create(
             session,
-            code_insee="31556",
+            code_insee="TSTR3",
             prefixe="001",
             section="AA",
             numero="001",
@@ -127,7 +127,7 @@ def test_repository_search_geojson_by_intersection_returns_matches() -> None:
         )
         repository.create(
             session,
-            code_insee="31557",
+            code_insee="TSTR4",
             prefixe="001",
             section="AA",
             numero="002",
@@ -144,7 +144,7 @@ def test_repository_search_geojson_by_intersection_returns_matches() -> None:
         )
 
     assert len(results) == 1
-    assert results[0]["code_insee"] == "31556"
+    assert results[0]["code_insee"] == "TSTR3"
 
 
 def test_repository_get_neighbors_geojson_by_id_returns_touching() -> None:
@@ -153,7 +153,7 @@ def test_repository_get_neighbors_geojson_by_id_returns_touching() -> None:
     with SessionLocal.begin() as session:
         center = repository.create(
             session,
-            code_insee="31558",
+            code_insee="TSTR5",
             prefixe="001",
             section="AA",
             numero="003",
@@ -172,7 +172,7 @@ def test_repository_get_neighbors_geojson_by_id_returns_touching() -> None:
         )
         repository.create(
             session,
-            code_insee="31559",
+            code_insee="TSTR6",
             prefixe="001",
             section="AA",
             numero="004",
@@ -199,4 +199,4 @@ def test_repository_get_neighbors_geojson_by_id_returns_touching() -> None:
         )
 
     assert len(results) == 1
-    assert results[0]["code_insee"] == "31559"
+    assert results[0]["code_insee"] == "TSTR6"

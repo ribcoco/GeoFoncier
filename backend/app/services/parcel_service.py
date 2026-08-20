@@ -37,6 +37,7 @@ class ParcelService:
             "area is null",
             "not valid",
             "not valid for geography",
+            "ck_parcels_geometry_valid",
         )
         if any(marker in message for marker in invalid_markers):
             raise ParcelInvalidError(
